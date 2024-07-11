@@ -1,0 +1,69 @@
+nano term1.txt 
+hduser@ubuntu:~/roshni$ cat term1.txt 
+2024-06-16	15:43	Banglore	Men's Clothing	208.97	Visa
+2024-06-18	20:15	Mumbai	Electronics	1005.20	Cash
+2024-01-18	14:15	Banglore	Home Appliances	5000	Cash
+2024-01-17	11:11	Mumbai	Men's Clothing	1000	Cash
+2024-01-15	10:10	Banglore	Electronics	7000	Visa
+
+hduser@ubuntu:~/roshni$ nano term1mapper.py
+#!/usr/bin/env python
+import string
+import fileinput
+
+for line in fileinput.input():
+    data = line.strip().split("\t")
+    if len(data) == 6:
+       date, time, location, item, cost, payment = data
+       print "{0}\t{1}".format(location, cost)
+hduser@ubuntu:~/roshni$ cat term1.txt | python term1mapper.py 
+Banglore	208.97
+Mumbai	1005.20
+Banglore	5000
+Mumbai	1000
+Banglore	7000
+
+hduser@ubuntu:~/roshni$ nano term1reducer.py
+
+#!/usr/bin/env python
+import fileinput
+transactions_count = 0
+sales_total = 0
+for line in fileinput.input():
+    data = line.strip().split("\t")
+    if len(data) != 2:
+        # Something has gone wrong. Skip this line.
+        continue
+    current_key, current_value = data
+    transactions_count += 1
+    sales_total += float(current_value)
+print transactions_count, "\t", sales_total
+cat term1.txt | python term1mapper.py | python term1reducer.py 
+5 	14214.17
+
+hdfs dfs -mkdir /shopping
+24/07/06 09:36:21 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+hduser@ubuntu:~/roshni$ hdfs dfs -copyFromLocal /home/hduser/roshni/term1.txt  /shopping
+24/07/06 09:37:17 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+hduser@ubuntu:~/roshni$ hdfs dfs -ls /
+24/07/06 09:37:45 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Found 11 items
+....
+
+hdfs dfs -ls /shopping
+24/07/06 09:38:25 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Found 1 items
+-rw-r--r--   1 hduser supergroup        252 2024-07-06 09:37 /shopping/term1.txt
+hduser@ubuntu:~/roshni$ chmod 777 term1mapper.py term1reducer.py
+hduser@ubuntu:~/roshni$ ls -l
+
+hduser@ubuntu:~/roshni$ hadoop jar /home/hduser/roshni/hadoop-streaming-2.7.3.jar \ 
+-input /shopping/term1.txt \ 
+-output /shopping/output1 \
+-mapper /home/hduser/roshni/term1mapper.py \
+-reducer /home/hduser/roshni/term1reducer.py 
+
+hduser@ubuntu:~/roshni$ hdfs dfs -cat /shopping/output1/part-0000024/07/06 09:52:39 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+5 	14214.17
+
+

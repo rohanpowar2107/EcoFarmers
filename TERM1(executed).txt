@@ -1,0 +1,112 @@
+hduser@ubuntu:~/roshni$ nano 1.txt
+hduser@ubuntu:~/roshni$ cat 1.txt
+hey 
+hello
+good morning
+good afternoon
+good evening
+good night
+hduser@ubuntu:~/roshni$ nano mapper1.py
+#!/usr/bin/env python
+import sys
+#input comes from STDIN
+for line in sys.stdin:
+    line=line.strip()
+    words=line.split()
+    for word in words:
+       print'%s\t%s'%(word,1)
+
+hduser@ubuntu:~/roshni$ cat 1.txt | python mapper1.py 
+hey	1
+hello	1
+good	1
+morning	1
+good	1
+afternoon	1
+good	1
+evening	1
+good	1
+night	1
+
+hduser@ubuntu:~/roshni$ nano reducer1.py
+
+#!/usr/bin/env python 
+from operator import itemgetter
+import sys
+current_word=None
+current_count=0
+word=None
+#input comes from STDIN
+for line in sys.stdin:
+    line=line.strip()
+    word,count=line.split('\t',1)
+    try:
+      count=int(count)
+    except ValueError:
+         continue
+    if current_word==word:
+        current_count+=count
+    else:
+        if current_word:
+              print'%s\t%s'%(current_word,current_count)
+        current_count=count
+        current_word=word
+if current_word:
+   print'%s\t%s'%(current_word,current_count)
+
+hduser@ubuntu:~/roshni$ cat 1.txt | python mapper1.py | python reducer1.py 
+hey	1
+hello	1
+good	1
+morning	1
+good	1
+afternoon	1
+good	1
+evening	1
+good	1
+night	1
+hduser@ubuntu:~/roshni$ cat 1.txt | python mapper1.py | sort -k1,1 |python reducer1.py 
+afternoon	1
+evening	1
+good	4
+hello	1
+hey	1
+morning	1
+night	1
+hduser@ubuntu:~/roshni$ hdfs dfs -mkdir /1t
+24/07/07 08:31:13 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+hduser@ubuntu:~/roshni$ hdfs dfs -ls
+24/07/07 08:31:28 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Found 1 items
+hduser@ubuntu:~/roshni$ hdfs dfs -ls /
+24/07/07 08:32:27 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Found 15 items
+hduser@ubuntu:~/roshni$ hdfs dfs -copyFromLocal /home/hduser/roshni/1.txt /1t
+24/07/07 08:33:02 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+hduser@ubuntu:~/roshni$ hdfs dfs -ls /
+24/07/07 08:33:13 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Found 15 items
+hduser@ubuntu:~/roshni$ hdfs dfs -ls /1t
+24/07/07 08:33:26 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+Found 1 items
+duser@ubuntu:~/roshni$ chmod 777 mapper1.py reducer1.py 
+hduser@ubuntu:~/roshni$ ls -l
+hduser@ubuntu:~/roshni$ hadoop jar /home/hduser/roshni/hadoop-streaming-2.7.3.jar \
+> -input /1t/1.txt \
+> -output /1t/output \
+> -mapper /home/hduser/roshni/mapper1.py \
+> -reducer /home/hduser/roshni/reducer1.py 
+hduser@ubuntu:~/roshni$ hdfs dfs -cat /1t/output/part-00000
+24/07/07 08:39:20 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+afternoon	1
+evening	1
+good	4
+hello	1
+hey	1
+morning	1
+night	1
+
+
+
+
+
